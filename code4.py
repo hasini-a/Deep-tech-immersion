@@ -610,7 +610,7 @@ def sample_data() -> pd.DataFrame:
     ]
     df = pd.DataFrame(rows, columns=[
         "Product Name","Category","Batch Number","Quantity",
-        "Manufacturing Date","Expiry Date","Cost Per Unit",
+        "Manufacturing Date","Expiry Date","Price Per Unit",
     ])
     df["Manufacturing Date"] = pd.to_datetime(df["Manufacturing Date"]).dt.date
     df["Expiry Date"]        = pd.to_datetime(df["Expiry Date"]).dt.date
@@ -622,7 +622,7 @@ def load_data() -> pd.DataFrame:
         df = pd.read_csv(CSV_PATH)
         df["Manufacturing Date"] = pd.to_datetime(df["Manufacturing Date"]).dt.date
         df["Expiry Date"]        = pd.to_datetime(df["Expiry Date"]).dt.date
-        df["Cost Per Unit"]      = pd.to_numeric(df["Cost Per Unit"], errors="coerce").fillna(0)
+        df["Price Per Unit"]      = pd.to_numeric(df["Price Per Unit"], errors="coerce").fillna(0)
     else:
         df = sample_data()
         df.to_csv(CSV_PATH, index=False)
@@ -650,7 +650,7 @@ def enrich(raw: pd.DataFrame) -> pd.DataFrame:
     d["Risk Score"]    = d["Days Remaining"].apply(
         lambda x: 100 if x < 0 else max(0, round(100-(x/EXPIRING_SOON_DAYS)*100))
     )
-    d["Est. Loss (₹)"] = (d["Quantity"]*d["Cost Per Unit"]).round(2)
+    d["Est. Loss (₹)"] = (d["Quantity"]*d["Price Per Unit"]).round(2)
     return d
 
 
@@ -682,7 +682,7 @@ def build_excel(df: pd.DataFrame) -> bytes:
 
     cols = [
         "Product Name","Category","Batch Number","Quantity",
-        "Manufacturing Date","Expiry Date","Cost Per Unit",
+        "Manufacturing Date","Expiry Date","Price Per Unit",
         "Days Remaining","Status","Risk Score","Est. Loss (₹)",
     ]
 
@@ -1035,7 +1035,7 @@ elif page == "➕  Product Entry":
             c5,c6,c7 = st.columns(3)
             mfg  = c5.date_input("Manufacturing Date *", value=date.today()-timedelta(30))
             exp  = c6.date_input("Expiry Date *",        value=date.today()+timedelta(90))
-            cost = c7.number_input("Cost Per Unit (₹) *", min_value=0.0, step=5.0,
+            cost = c7.number_input("Price Per Unit (₹) *", min_value=0.0, step=5.0,
                                    value=50.0, format="%.2f")
             st.markdown("<br>", unsafe_allow_html=True)
             sub = st.form_submit_button("＋  Add to Inventory", use_container_width=True)
@@ -1052,7 +1052,7 @@ elif page == "➕  Product Entry":
                     "Product Name": name.strip(), "Category": cat,
                     "Batch Number": batch.strip(), "Quantity": int(qty),
                     "Manufacturing Date": mfg, "Expiry Date": exp,
-                    "Cost Per Unit": float(cost),
+                    "Price Per Unit": float(cost),
                 }])
                 st.session_state.data = pd.concat(
                     [st.session_state.data, new], ignore_index=True)
@@ -1117,7 +1117,7 @@ elif page == "➕  Product Entry":
                     e_m = ee.date_input("Mfg Date",    value=r["Manufacturing Date"])
                     e_e = ef.date_input("Expiry Date", value=r["Expiry Date"])
                     e_c = eg.number_input("Cost/Unit", min_value=0.0,
-                                          value=float(r["Cost Per Unit"]), format="%.2f")
+                                          value=float(r["Price Per Unit"]), format="%.2f")
                     sv = st.form_submit_button("💾  Save Changes", use_container_width=True)
                 if sv:
                     if e_e <= e_m:
@@ -1125,7 +1125,7 @@ elif page == "➕  Product Entry":
                     else:
                         for k, v in zip(
                             ["Product Name","Category","Batch Number","Quantity",
-                             "Manufacturing Date","Expiry Date","Cost Per Unit"],
+                             "Manufacturing Date","Expiry Date","Price Per Unit"],
                             [e_name, e_cat, e_b, e_q, e_m, e_e, e_c]
                         ):
                             st.session_state.data.at[eidx, k] = v
@@ -1531,7 +1531,7 @@ elif page == "📈  Analytics":
             glass_title("At-Risk Product Details")
             st.dataframe(
                 risk_data[["Product Name","Category","Status","Quantity",
-                           "Cost Per Unit","Est. Loss (₹)","Days Remaining","Risk Score"]]
+                           "Price Per Unit","Est. Loss (₹)","Days Remaining","Risk Score"]]
                 .sort_values("Days Remaining").reset_index(drop=True),
                 use_container_width=True, hide_index=True,
                 column_config={
@@ -1548,7 +1548,7 @@ elif page == "📈  Analytics":
         today_str = date.today().strftime("%Y%m%d")
         full_rpt = data[[
             "Product Name","Category","Batch Number","Quantity",
-            "Manufacturing Date","Expiry Date","Cost Per Unit",
+            "Manufacturing Date","Expiry Date","Price Per Unit",
             "Days Remaining","Status","Risk Score","Est. Loss (₹)"
         ]].sort_values("Days Remaining").reset_index(drop=True)
         risk_rpt = full_rpt[full_rpt["Status"].isin(["Expired","Critical","Expiring Soon"])]
